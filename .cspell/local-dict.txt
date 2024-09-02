@@ -1,0 +1,5 @@
+autoinstall
+getmod
+mktemp
+taskfile
+xorriso

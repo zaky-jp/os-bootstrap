@@ -1,0 +1,34 @@
+{
+	"dictionaryDefinitions": [
+		{
+			"name": "taskfile",
+			"path": ".cspell/taskfile-dict.txt"
+		},
+		{
+			"name": "autoinstall",
+			"path": ".cspell/autoinstall-dict.txt"
+		},
+		{
+			"name": "xorriso",
+			"path": ".cspell/xorriso-dict.txt"
+		},
+		{
+			"name": "local",
+			"path": ".cspell/local-dict.txt",
+			"addWords": true
+		}
+	],
+	"dictionaries": [
+		"local"
+	],
+	"languageSettings": [
+		{
+			"languageId": "yaml",
+			"dictionaries": [
+				"taskfile",
+				"autoinstall",
+				"xorriso"
+			]
+		}
+	]
+}

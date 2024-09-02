@@ -1,0 +1,25 @@
+#cloud-config
+autoinstall:
+  version: 1
+  identity:
+    hostname: ubuntu-server
+    username: ubuntu
+    password: '$6$mqUlL57PcJ.t6L0L$Rqs4SWn4GWLpNMCWEGKXwK.3NOYA7zK3lLgK/iEmRF8mNDtBKiAQxIteqkVeab.vjFjeE50f7VZWaVAWB72LD0' # cspell: disable-line
+  interactive-sections:
+    - storage
+  refresh-installer:
+    update: true
+  drivers:
+    install: true
+  updates: all
+  timezone: Asia/Tokyo
+  apt:
+    preserve_sources_list: true
+    mirror-selection:
+      primary:
+        - uri: 'http://ftp.udx.icscoe.jp/Linux/ubuntu/'
+          arches: [i386, amd64]
+        - uri: 'http://ftp.kaist.ac.kr/ubuntu-ports/'
+          arches: [s390x, arm64, armhf, powerpc, ppc64el, riscv64]
+      fallback:
+        - offline-install

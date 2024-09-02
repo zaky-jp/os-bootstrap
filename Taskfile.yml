@@ -1,0 +1,115 @@
+version: '3'
+vars:
+  CACHE_HOME: '{{joinPath .XDG_CACHE_HOME (base .ROOT_DIR)}}'
+  IMAGE_ARTIFACT_DIR: './artifacts'
+includes:
+  ubuntu:
+    taskfile: .task/ubuntu.yml
+    internal: true
+
+tasks:
+  ubuntu-build-iso:
+    # meta
+    desc: 'Build ubuntu OS image using downloaded cache'
+    summary: |
+      Build Ubuntu OS image with autoinstall customisation.
+      If the image is not cached, automatically download OS image from remote server.
+      Needs to pass arguments if you want non-default version / architecture:
+        task ubuntu -- noble amd64
+        - second argument: version
+        - third argument: architecture
+    vars:
+      TARGET_OS: 'ubuntu'
+      TARGET_VERSION: >-
+        {{if eq (len .CLI_ARGS) 0}}
+        noble
+        {{else}}
+        {{index (splitArgs .CLI_ARGS) 0}}
+        {{end}}
+      TARGET_ARCH: >-
+        {{if eq (len .CLI_ARGS) 0}}
+        amd64
+        {{else}}
+        {{index (splitArgs .CLI_ARGS) 1}}
+        {{end}}
+    # runner
+    cmds:
+      - task: download-generic
+        vars:
+          LABEL: 'ubuntu:download'
+          TARGET_OS: {ref: .TARGET_OS}
+          TARGET_ARCH: {ref: trim .TARGET_ARCH}
+          TARGET_VERSION: {ref: trim .TARGET_VERSION}
+      - task: build-generic
+        vars:
+          LABEL: 'ubuntu:build'
+          TARGET_OS: {ref: .TARGET_OS}
+          TARGET_ARCH: {ref: trim .TARGET_ARCH}
+          TARGET_VERSION: {ref: trim .TARGET_VERSION}
+
+  download-generic:
+    # meta
+    internal: true
+    requires:
+      vars:
+        - TARGET_OS
+        - TARGET_VERSION
+        - TARGET_ARCH
+        - LABEL
+    label: '{{.LABEL}}'
+    # conditions
+    run: when_changed
+    deps: [mktemp]
+    # runner
+    cmds:
+      - task: '{{.TARGET_OS}}:download'
+        vars:
+          TARGET_ARCH: {ref: .TARGET_ARCH}
+          TARGET_VERSION: {ref: .TARGET_VERSION}
+          CACHE_IMAGE_FILE: '{{joinPath .CACHE_HOME (printf "%s-%s-%s.iso" .TARGET_OS .TARGET_VERSION .TARGET_ARCH)}}'
+
+  build-generic:
+    # meta
+    internal: true
+    requires:
+      vars:
+        - TARGET_OS
+        - TARGET_VERSION
+        - TARGET_ARCH
+        - LABEL
+    label: '{{.LABEL}}'
+    # conditions
+    run: when_changed
+    deps: [mkdir-artifact]
+    # runner
+    cmds:
+      - task: '{{.TARGET_OS}}:build'
+        vars:
+          TARGET_ARCH: {ref: .TARGET_ARCH}
+          TARGET_VERSION: {ref: .TARGET_VERSION}
+          CACHE_IMAGE_FILE: '{{joinPath .CACHE_HOME (printf "%s-%s-%s.iso" .TARGET_OS .TARGET_VERSION .TARGET_ARCH)}}'
+          ARTIFACT_IMAGE_FILE: '{{joinPath .IMAGE_ARTIFACT_DIR (printf "%s-%s-%s.iso" .TARGET_OS .TARGET_VERSION .TARGET_ARCH)}}'
+
+  mktemp:
+    # meta
+    internal: true
+    # conditions
+    run: once
+    status:
+      - test -d '{{.CACHE_HOME}}'
+      - test $(getmod '{{.CACHE_HOME}}') -eq 700
+    # runner
+    cmds:
+      - mkdir -p '{{.CACHE_HOME}}'
+      - chmod 700 '{{.CACHE_HOME}}'
+
+  mkdir-artifact:
+    # meta
+    internal: true
+    # conditions
+    run: once
+    status:
+      - test -d '{{.IMAGE_ARTIFACT_DIR}}'
+    # runner
+    cmds:
+      - mkdir -p '{{.IMAGE_ARTIFACT_DIR}}'

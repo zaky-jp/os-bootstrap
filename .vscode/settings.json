@@ -1,0 +1,10 @@
+{
+    "yaml.schemas": {
+        "https://taskfile.dev/schema.json": [
+            "**/.task/*.yml"
+        ],
+        "https://raw.githubusercontent.com/zaky-jp/autoinstall-config-schema/main/schema.autoinstall.json": [
+            "src/**/autoinstall/*.yml"
+        ]
+    }
+}

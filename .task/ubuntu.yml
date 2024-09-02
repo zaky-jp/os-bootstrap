@@ -1,0 +1,73 @@
+version: '3'
+vars:
+  # refer https://releases.ubuntu.com/ and https://cdimage.ubuntu.com/releases/
+  NOBLE_REMOTE_URL:
+    map:
+      {
+        amd64: 'https://releases.ubuntu.com/24.04.1/ubuntu-24.04.1-live-server-amd64.iso',
+        arm64: 'https://cdimage.ubuntu.com/releases/24.04.1/release/ubuntu-24.04.1-live-server-arm64.iso',
+      }
+  JAMMY_REMOTE_URL:
+    map:
+      {
+        amd64: 'https://releases.ubuntu.com/22.04/ubuntu-22.04.4-live-server-amd64.iso',
+        arm64: 'https://cdimage.ubuntu.com/releases/22.04.4/release/ubuntu-22.04.4-live-server-arm64.iso',
+      }
+  AUTOINSTALL_SOURCE:
+    map:
+      {
+        amd64: 'src/ubuntu/autoinstall/generic.yml',
+        arm64: 'src/ubuntu/autoinstall/generic.yml',
+      }
+
+tasks:
+  download:
+    # meta
+    desc: 'Download OS image'
+    summary: 'Download and cache OS image from Ubuntu releases'
+    requires:
+      vars:
+        - TARGET_ARCH
+        - TARGET_VERSION
+        - CACHE_IMAGE_FILE
+    vars:
+      URL: >-
+        {{if eq .TARGET_VERSION "noble"}}
+        {{index .NOBLE_REMOTE_URL .TARGET_ARCH}}
+        {{else if eq .TARGET_VERSION "jammy"}}
+        {{index .JAMMY_REMOTE_URL .TARGET_ARCH}}
+        {{end}}
+    # conditions
+    preconditions:
+      - which curl
+    # runner
+    cmds:
+      - test -f '{{.CACHE_IMAGE_FILE}}' || curl -fL -o '{{.CACHE_IMAGE_FILE}}' '{{trim .URL}}'
+      - curl -fL -o '{{.CACHE_IMAGE_FILE}}' -z '{{.CACHE_IMAGE_FILE}}' '{{trim .URL}}'
+
+  build:
+    # meta
+    desc: 'Include autoinstall file to server image'
+    summary: 'Add autoinstall.yaml to server image using xorriso'
+    requires:
+      vars:
+        - CACHE_IMAGE_FILE
+        - ARTIFACT_IMAGE_FILE
+        - TARGET_ARCH
+    vars:
+      AUTOINSTALL_FILE:
+        ref: index .AUTOINSTALL_SOURCE .TARGET_ARCH
+    # conditions
+    preconditions:
+      - which xorriso
+      - test -f '{{.CACHE_IMAGE_FILE}}'
+      - test -f '{{.AUTOINSTALL_FILE}}'
+    status:
+      - test -f '{{.ARTIFACT_IMAGE_FILE}}'
+    # runner
+    cmds:
+      - >-
+        xorriso -indev '{{.CACHE_IMAGE_FILE}}' -outdev '{{.ARTIFACT_IMAGE_FILE}}'
+        -map '{{.AUTOINSTALL_FILE}}' './autoinstall.yaml'
+        -joliet off
+        -boot_image any replay
